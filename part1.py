@@ -4,7 +4,26 @@ import glob
 import csv
 import os
 import shutil	#can delete the folder and all the files under this folder
+''''''
+#library written by yentse
+#import str2list.py
+''''''
 
+def str2list(text, sp):
+	_list = []
+	a = ''
+	rowNum = 0
+	for row in text:
+		_list.append([])
+		for ch in row:
+			if(ch not in sp):
+				a += ch
+			else:
+				_list[rowNum].append(a)
+				a = ''
+		rowNum += 1
+	return _list
+			
 
 #the path where this python code exists
 path = os.path.abspath('.')		
@@ -16,8 +35,10 @@ if os.path.isdir(path+'/output'):
 
 #list all the files(inculde folder) under the path
 folderlist = glob.glob(path+'/*')
-#print(folderlist)
+print(folderlist)
 
+#create folder, name output
+os.makedirs(path+'/output')
 #init first number of each line in the .txt, means the frame num that have labeled
 #output file name : outname
 num = ''
@@ -26,9 +47,6 @@ outname = 0
 #scan folder under the path
 for folder in folderlist:
 	
-	#create folder, name output
-	if not os.path.isdir(path+'/output'):
-		os.makedirs(path+'/output')
 	#list all the .txt in this folder
 	files = glob.glob(folder+'/*.txt')
 
@@ -86,7 +104,7 @@ width = np.size(img, 1)
 # Define the codec and create VideoWriter object
 fourcc = cv2.VideoWriter_fourcc(*'MJPG')
 #write new video file
-video_out = cv2.VideoWriter('output.mp4',fourcc, 1.0, (width,height))
+video_out = cv2.VideoWriter('output.mp4',fourcc, 10.0, (width,height))
 #write new txt
 text_out = open('output.txt', 'w')
 
@@ -98,8 +116,28 @@ for i in range(outname):
 	f = open(txt_path + str(i) + '.txt')
 	txt = f.read()
 	text_out.write(txt)
+	f.close()
 
 video_out.release()
 text_out.close()	
 
+#read output.txt
+f = open('output.txt', 'r', encoding = 'big5')
+_text = f.readlines()
+_text = str2list(_text, [',', '\n'])
+f.close()
 
+#statistic the area of bounding box
+area = np.zeros((100, ))
+for row in _text:
+	n = row[1]
+	pos = 2
+	for i in range(int(n)):
+		X = int(row[pos+2]) - int(row[pos])
+		Y = int(row[pos+3]) - int(row[pos+1])
+		pos += 5
+		area[int((X * Y * 100) / (height * width))] += 1
+f = open('area_statistics.txt', 'w') 
+for i in range(100):
+	f.write(str(i) + '%~' + str(i+1) + '%:' + str(area[i]) + '\n')
+f.close()
